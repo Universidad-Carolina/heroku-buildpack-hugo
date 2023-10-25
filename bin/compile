@@ -13,11 +13,19 @@ BUILD_DIR=$1
 CACHE_DIR=$2
 ENV_DIR=$3
 
-# Install Dart Sass
-snap install dart-sass
-
 # Default Hugo version
 DEFAULT_HUGO_VERSION="0.119.0"
+# Default Sass version
+DEFAULT_SASS_VERSION="1.69.4"
+
+# attempt to extract the SASS_VERSION parameter form the Heroku configuration vars, fall back to the default version if unavailable
+if [ -d "$ENV_DIR" -a -e "$ENV_DIR/SASS_VERSION" ]; then
+  export SASS_VERSION=$(cat "$ENV_DIR/SASS_VERSION")
+else
+  echo "\n-----> SASS VERSION not defined, using $DEFAULT_SASS_VERSION."
+  export SASS_VERSION=$DEFAULT_HUGO_VERSION
+fi
+
 
 # attempt to extract the HUGO_VERSION parameter form the Heroku configuration vars, fall back to the default version if unavailable
 if [ -d "$ENV_DIR" -a -e "$ENV_DIR/HUGO_VERSION" ]; then
@@ -31,6 +39,11 @@ fi
 RELEASE_NAME=hugo_extended_${HUGO_VERSION}_Linux-64bit
 FILE_NAME=${RELEASE_NAME}.tar.gz
 HUGO_PACKAGE=https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/${FILE_NAME}
+
+SASS_RELEASE_NAME=dart-sass-${HUGO_VERSION}_linux-x64
+SASS_FILE_NAME=${RELEASE_NAME}.tar.gz
+SASS_PACKAGE=https://github.com/sass/dart-sass/releases/download/${SASS_VERSION}/${SASS_FILE_NAME}
+
 # Store the hugo package in the cache_dir ( persistent across builds )
 mkdir -p $CACHE_DIR
 if ! [ -e $CACHE_DIR/$FILE_NAME ]; then
@@ -38,10 +51,17 @@ if ! [ -e $CACHE_DIR/$FILE_NAME ]; then
   curl $HUGO_PACKAGE -L -s -o $CACHE_DIR/$FILE_NAME | indent
 fi
 
+if ! [ -e $CACHE_DIR/$SASS_FILE_NAME ]; then
+  echo "\n-----> Fetching Hugo ${SASS_VERSION} binaries at ${SASS_PACKAGE}"
+  curl $SASS_PACKAGE -L -s -o $CACHE_DIR/$FILE_NAME | indent
+fi
+
 # Extract the binary in the working directory
 echo "\n-----> Extracting Hugo ${HUGO_VERSION} binaries to ${BUILD_DIR}"
 mkdir -p $CACHE_DIR/$RELEASE_NAME | indent
+mkdir -p $CACHE_DIR/$SASS_RELEASE_NAME | indent
 tar -zxvf $CACHE_DIR/$FILE_NAME -C $CACHE_DIR | indent
+tar -zxvf $CACHE_DIR/$SASS_FILE_NAME -C $CACHE_DIR | indent
 mv $CACHE_DIR/hugo $BUILD_DIR/hugo | indent
 
 # Fetch a theme specified in the .hugotheme file
