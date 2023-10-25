@@ -13,10 +13,6 @@ BUILD_DIR=$1
 CACHE_DIR=$2
 ENV_DIR=$3
 
-# Install Snap
-apt-get update
-apt-get install -y snapd
-
 # Install Dart Sass
 snap install dart-sass
 
